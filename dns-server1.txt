@@ -7,4 +7,5 @@ nmcli con mod eth0 autoconnect no
 nmcli con mod eth1 autoconnect no
 hostnamectl set-hostname vm1.contoso.com
 echo 127.0.0.1 vm1.contoso.com vm1 >> /etc/hosts
+echo 10.0.0.34 vm2 vm2.contoso.com >> /etc/hosts
 reboot
