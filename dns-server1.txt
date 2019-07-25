@@ -1,0 +1,97 @@
+su  -
+nmcli con show
+
+NAME 	UUID 			TYPE		DEVICE
+Profile		 which controls 		the device
+
+nmcli con add con-name static ifname eth0 type ethernet autoconnect yes ip4 10.0.0.24/24 gw4 10.0.0.1 ipv4.dns 10.13.2.5,10.13.2.7
+nmcli con mod eth0 autoconnect no
+nmcli con mod eth1 autoconnect no
+hostnamectl set-hostname vm1.contoso.com
+echo 127.0.0.1 vm1.contoso.com vm1 >> /etc/hosts
+reboot
+
+su -
+nmcli con show
+ip addr | grep inet
+ip route | grep default
+
+yum -y install bind bind-utils
+
+vi /etc/named.conf
+
+
+listen-on port 53 {127.0.0.1; 10.0.0.dhcp; };   tells it on which interface to listen on
+allow-query   { localhost; 10.0.0.0/24; };	which network im going to resolve names for. only responds to my network.
+forwarders { 10.13.2.5; 10.13.2.7; };		recursive -- ill do it
+
+Zone "contoso.com" IN {
+	type master;
+	file "contoso.com.zone";
+	allow-update { none; };
+};
+
+Zone "0.0.10.in-addr.arpa" IN {
+	type master;
+	file "0.0.10.in-addr.arpa.zone";
+	allow-update { none; };
+};
+
+:wq
+
+vi /var/named/contoso.com.zone			conf. are in /etc      Data files are in /var
+
+@ 		IN		SOA		vm1.contoso.com. root.contoso.com. (
+									1	;Serial
+									1H	;Refresh
+									15M 	;Retry
+									1W	:Expire
+									1D	;Minimum TTL
+)
+
+@		IN		NS		vm1.contoso.com.
+
+vm1		IN		A		10.0.0.dhcp
+vm2		IN		A		10.0.0.dhcp
+gateway		IN		A		10.0.0.1
+router		IN		CNAME		gateway.contoso.com
+
+:wq
+
+vi /var/named/0.0.10.in-addr.arpa.zone
+
+
+@ 		IN		SOA		vm1.contoso.com. root.contoso.com. (
+									1	;Serial
+									1H	;Refresh
+									15M 	;Retry
+									1W	:Expire
+									1D	;Minimum TTL
+)
+
+@		IN		NS		vm1.contoso.com.
+
+100		IN		PTR		vm1.contoso.com.
+101		IN		PTR		vm2.contoso.com.
+1		IN		PTR		gateway.contoso.com.
+
+
+:wq
+
+firewall-cmd --zone=public --add-service=dns --permanent
+firewall-cmd --reload
+firewall-cmd --list-all				dns should be loaded
+
+systemctl enable named
+systemctl start named				this is when you learn if you have typo's
+
+nmcli con mod static ipv4.dns 127.0.0.1 	fix my dns client to point to my dns server
+nmcli con down static
+nmcli con up static
+cat /etc/resolv.conf				should have the loopback
+reboot
+host -v -t A vm1.contoso.com
+host -v -t A www.broward.edu 10.13.2.5
+dig -v -t A www.broward.edu @10.13.2.5
+
+
