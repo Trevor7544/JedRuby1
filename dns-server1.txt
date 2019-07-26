@@ -6,3 +6,5 @@ echo 127.0.0.1 vm1.contoso.com vm1 >> /etc/hosts
 echo 10.0.0.34 vm2 vm2.contoso.com >> /etc/hosts
 
 reboot
+
+
