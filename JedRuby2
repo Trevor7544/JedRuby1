@@ -1,0 +1,3 @@
+cat /tmp/file11.txt << EOF
+THe message
+EOF
